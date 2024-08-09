@@ -1,118 +1,162 @@
-const cells = document.querySelectorAll('.cell');
-const resetButton = document.getElementById('reset');
-let currentPlayer = 'X'; // Human player is 'X'
-let computerPlayer = 'O'; // Computer player is 'O'
-let board = ['', '', '', '', '', '', '', '', ''];
-let isComputerTurn = false; // Start with human player
+document.addEventListener('DOMContentLoaded', () => {
+    const board = document.getElementById('board');
+    const status = document.getElementById('status');
+    const startGameButton = document.getElementById('startGame');
 
-const checkWin = () => {
-    const winPatterns = [
-        [0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8],
-        [0, 3, 6],
-        [1, 4, 7],
-        [2, 5, 8],
-        [0, 4, 8],
-        [2, 4, 6]
+    let gameBoard = [
+        ['', '', ''],
+        ['', '', ''],
+        ['', '', '']
     ];
+    let currentPlayer = 'X'; // 'X' for human, 'O' for computer
+    let gameOver = false;
 
-    for (let pattern of winPatterns) {
-        const [a, b, c] = pattern;
-        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-            return board[a];
-        }
-    }
-
-    return board.includes('') ? null : 'Tie';
-};
-
-const minimax = (depth, isMaximizing) => {
-    const winner = checkWin();
-    if (winner === computerPlayer) return 10 - depth;
-    if (winner === currentPlayer) return depth - 10;
-    if (winner === 'Tie') return 0;
-
-    if (isMaximizing) {
-        let bestScore = -Infinity;
-        for (let i = 0; i < 9; i++) {
-            if (board[i] === '') {
-                board[i] = computerPlayer;
-                let score = minimax(depth + 1, false);
-                board[i] = '';
-                bestScore = Math.max(score, bestScore);
-            }
-        }
-        return bestScore;
-    } else {
-        let bestScore = Infinity;
-        for (let i = 0; i < 9; i++) {
-            if (board[i] === '') {
-                board[i] = currentPlayer;
-                let score = minimax(depth + 1, true);
-                board[i] = '';
-                bestScore = Math.min(score, bestScore);
-            }
-        }
-        return bestScore;
-    }
-};
-
-const getBestMove = () => {
-    let bestScore = -Infinity;
-    let bestMove = -1;
-    for (let i = 0; i < 9; i++) {
-        if (board[i] === '') {
-            board[i] = computerPlayer;
-            let score = minimax(0, false);
-            board[i] = '';
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = i;
+    function createBoard() {
+        board.innerHTML = '';
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 3; col++) {
+                const button = document.createElement('button');
+                button.className = 'btn btn-light';
+                button.addEventListener('click', () => handleButtonClick(row, col));
+                board.appendChild(button);
             }
         }
     }
-    return bestMove;
-};
 
-const handleClick = (e) => {
-    const index = e.target.getAttribute('data-cell');
-
-    if (board[index] || checkWin() || isComputerTurn) return;
-
-    board[index] = currentPlayer;
-    e.target.textContent = currentPlayer;
-
-    const winner = checkWin();
-    if (winner) {
-        setTimeout(() => {
-            alert(winner === 'Tie' ? "It's a Tie!" : `${winner} Wins!`);
-            resetGame();
-        }, 100);
-        return;
+    function handleButtonClick(row, col) {
+        if (gameBoard[row][col] === '' && !gameOver && currentPlayer === 'X') {
+            gameBoard[row][col] = 'X';
+            updateBoard();
+            if (checkWinner()) {
+                status.textContent = 'Player X wins!';
+                gameOver = true;
+            } else if (isBoardFull()) {
+                status.textContent = 'It\'s a draw!';
+                gameOver = true;
+            } else {
+                currentPlayer = 'O';
+                status.textContent = 'Player O\'s turn';
+                setTimeout(computerMove, 500); // Delay computer move
+            }
+        }
     }
 
-    isComputerTurn = true;
-    const bestMove = getBestMove();
-    board[bestMove] = computerPlayer;
-    cells[bestMove].textContent = computerPlayer;
-
-    isComputerTurn = false;
-    const newWinner = checkWin();
-    if (newWinner) {
-        setTimeout(() => {
-            alert(newWinner === 'Tie' ? "It's a Tie!" : `${newWinner} Wins!`);
-            resetGame();
-        }, 100);
+    function computerMove() {
+        const bestMove = findBestMove();
+        gameBoard[bestMove.row][bestMove.col] = 'O';
+        updateBoard();
+        if (checkWinner()) {
+            status.textContent = 'Player O wins!';
+            gameOver = true;
+        } else if (isBoardFull()) {
+            status.textContent = 'It\'s a draw!';
+            gameOver = true;
+        } else {
+            currentPlayer = 'X';
+            status.textContent = 'Player X\'s turn';
+        }
     }
-};
 
-const resetGame = () => {
-    board = ['', '', '', '', '', '', '', '', ''];
-    cells.forEach(cell => cell.textContent = '');
-    currentPlayer = 'X'; // Reset to human player
-    isComputerTurn = false; // Start with human player
-};
+    function updateBoard() {
+        const buttons = board.querySelectorAll('button');
+        let index = 0;
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 3; col++) {
+                buttons[index].textContent = gameBoard[row][col];
+                index++;
+            }
+        }
+    }
 
-cells.forEach(cell => cell.addEventListener('click', handleClick));
-resetButton.addEventListener('click', resetGame);
+    function checkWinner() {
+        // Check rows, columns, and diagonals
+        for (let i = 0; i < 3; i++) {
+            if (gameBoard[i][0] === currentPlayer && gameBoard[i][1] === currentPlayer && gameBoard[i][2] === currentPlayer) {
+                return true;
+            }
+            if (gameBoard[0][i] === currentPlayer && gameBoard[1][i] === currentPlayer && gameBoard[2][i] === currentPlayer) {
+                return true;
+            }
+        }
+        if (gameBoard[0][0] === currentPlayer && gameBoard[1][1] === currentPlayer && gameBoard[2][2] === currentPlayer) {
+            return true;
+        }
+        if (gameBoard[0][2] === currentPlayer && gameBoard[1][1] === currentPlayer && gameBoard[2][0] === currentPlayer) {
+            return true;
+        }
+        return false;
+    }
+
+    function isBoardFull() {
+        return gameBoard.flat().every(cell => cell !== '');
+    }
+
+    function findBestMove() {
+        let bestMove = { row: -1, col: -1 };
+        let bestValue = -Infinity;
+
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 3; col++) {
+                if (gameBoard[row][col] === '') {
+                    gameBoard[row][col] = 'O';
+                    const moveValue = minimax(0, false);
+                    gameBoard[row][col] = '';
+                    if (moveValue > bestValue) {
+                        bestMove = { row, col };
+                        bestValue = moveValue;
+                    }
+                }
+            }
+        }
+        return bestMove;
+    }
+
+    function minimax(depth, isMaximizing) {
+        const winner = checkWinner();
+        if (winner === 'O') return 10 - depth;
+        if (winner === 'X') return depth - 10;
+        if (isBoardFull()) return 0;
+
+        if (isMaximizing) {
+            let best = -Infinity;
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    if (gameBoard[row][col] === '') {
+                        gameBoard[row][col] = 'O';
+                        best = Math.max(best, minimax(depth + 1, false));
+                        gameBoard[row][col] = '';
+                    }
+                }
+            }
+            return best;
+        } else {
+            let best = Infinity;
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    if (gameBoard[row][col] === '') {
+                        gameBoard[row][col] = 'X';
+                        best = Math.min(best, minimax(depth + 1, true));
+                        gameBoard[row][col] = '';
+                    }
+                }
+            }
+            return best;
+        }
+    }
+
+    function startNewGame() {
+        gameBoard = [
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', '']
+        ];
+        currentPlayer = 'X';
+        gameOver = false;
+        status.textContent = 'Player X\'s turn';
+        updateBoard();
+    }
+
+    startGameButton.addEventListener('click', startNewGame);
+    createBoard();
+    startNewGame();
+});
