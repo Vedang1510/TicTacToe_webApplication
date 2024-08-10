@@ -20,7 +20,7 @@ To run this project locally, follow these steps:
 
     bash
 
-git clone https://github.com/your-username/tic-tac-toe.git
+git clone https://github.com/Vedang1510/TicTacToe_webApplication.git
 
 Navigate to the Project Directory
 
